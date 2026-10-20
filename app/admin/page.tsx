@@ -48,7 +48,7 @@ export default function DashboardPage() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#FDF0F3] text-gray-800 font-sans flex relative">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar />
 
       <main className="flex-1 flex flex-col h-full min-w-0">
         <TopBar

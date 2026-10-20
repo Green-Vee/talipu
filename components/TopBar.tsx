@@ -6,7 +6,8 @@ import NotificationPopover from "./NotificationPopover";
 import { NotificationItem } from "./types";
 
 interface TopBarProps {
-  activeTab: string;
+  title?: string;
+  activeTab?: string;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   notifications: NotificationItem[];
@@ -17,6 +18,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({
+  title,
   activeTab,
   searchQuery,
   setSearchQuery,
@@ -26,9 +28,12 @@ export default function TopBar({
   markAllAsRead,
   onOpenAddModal,
 }: TopBarProps) {
+  // Uses title first, or falls back to activeTab, or defaults to 'Dashboard'
+  const displayTitle = title || activeTab || "Dashboard";
+
   return (
     <header className="h-20 bg-white/70 backdrop-blur-md border-b border-pink-100 px-8 flex items-center justify-between shrink-0 z-20">
-      <h1 className="text-2xl font-bold text-gray-900">{activeTab}</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{displayTitle}</h1>
 
       <div className="flex items-center gap-4">
         <div className="relative w-64">

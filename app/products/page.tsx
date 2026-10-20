@@ -133,7 +133,7 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar />
 
       <main className="flex-1 flex flex-col h-full min-w-0">
         <TopBar
