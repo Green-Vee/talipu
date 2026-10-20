@@ -20,7 +20,7 @@ export default function Sidebar() {
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Products", href: "/products", icon: Package },
     { name: "Orders", href: "/orders", icon: ShoppingBag },
-    { name: "Customers", href: "/", icon: Users },
+    { name: "Customers", href: "/customers", icon: Users },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
