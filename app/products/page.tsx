@@ -14,7 +14,7 @@ import type { Product } from "@/components/types";
 import { supabase } from "@/lib/supabase";
 
 interface SupabaseProduct {
-  id: string | number;
+  id: string;
   name: string;
   price: number | string;
   description: string | null;
@@ -83,7 +83,7 @@ export default function ProductsPage() {
       const mappedProducts: Product[] = (
         (data ?? []) as unknown as SupabaseProduct[]
       ).map((item) => ({
-        id: Number(item.id),
+        id: item.id,
         name: item.name,
         price: String(item.price),
         category: item.description || "General",
@@ -185,6 +185,11 @@ export default function ProductsPage() {
         .from("products")
         .delete()
         .eq("id", deletingCake.id);
+      console.log(
+        "Attempting to delete/update ID:",
+        deletingCake.id,
+        typeof deletingCake.id,
+      );
 
       if (error) {
         console.error("Error deleting product:", error.message);
