@@ -1,273 +1,160 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-
-import Sidebar from "@/components/Sidebar";
-import CakeGrid from "@/components/CakeGrid";
-import ProductHeader from "@/components/ProductHeader";
-import ToastNotification from "@/components/ToastNotification";
-import AddCakeModal from "@/components/AddCakeModal";
-import EditCakeModal from "@/components/EditCakeModal";
-import DeleteCakeModal from "@/components/DeleteCakeModal";
-
-import type { Product } from "@/components/types";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import ProductDetailModal from "@/components/ProductDetailModal";
+import OrderModal from "@/components/OrderModal";
 
-interface SupabaseProduct {
+interface Product {
   id: string;
   name: string;
-  price: number | string;
-  description: string | null;
-  image_url: string | null;
+  price: number;
+  description?: string;
+  image_url?: string;
 }
 
-interface NewCakeInput {
-  name: string;
-  price: string;
-  category: string;
-  stockStatus: string;
-  image: string;
-}
-
-const DEFAULT_CAKE_IMAGE =
-  "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&auto=format&fit=crop&q=60";
-
-export default function ProductsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [toastMessage, setToastMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingCake, setEditingCake] = useState<Product | null>(null);
-  const [deletingCake, setDeletingCake] = useState<Product | null>(null);
+  // Modal states
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isOrderOpen, setIsOrderOpen] = useState(false);
 
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showToast = useCallback((message: string) => {
-    if (toastTimer.current) {
-      clearTimeout(toastTimer.current);
-    }
-
-    setToastMessage(message);
-
-    toastTimer.current = setTimeout(() => {
-      setToastMessage("");
-      toastTimer.current = null;
-    }, 3000);
-  }, []);
-
+  // Fetch products from Supabase on load
   useEffect(() => {
-    return () => {
-      if (toastTimer.current) {
-        clearTimeout(toastTimer.current);
-      }
-    };
-  }, []);
-
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+    async function fetchProducts() {
+      const { data, error } = await supabase.from("products").select("*");
       if (error) {
-        console.error("Error fetching products:", error.message);
-        showToast("❌ Failed to load products.");
-        return;
+        console.error("Error fetching products:", error);
+      } else if (data) {
+        setProducts(data);
       }
-
-      const mappedProducts: Product[] = (
-        (data ?? []) as unknown as SupabaseProduct[]
-      ).map((item) => ({
-        id: item.id,
-        name: item.name,
-        price: String(item.price),
-        category: item.description || "General",
-        stockStatus: "In Stock",
-        image: item.image_url || DEFAULT_CAKE_IMAGE,
-      }));
-
-      setProducts(mappedProducts);
-    } catch (error) {
-      console.error("Unexpected error fetching products:", error);
-      showToast("❌ An unexpected error occurred.");
-    } finally {
       setLoading(false);
     }
-  }, [showToast]);
+    fetchProducts();
+  }, []);
 
-  useEffect(() => {
-    Promise.resolve().then(() => {
-      fetchProducts();
-    });
-  }, [fetchProducts]);
-
-  const handleAddCake = async (newCakeData: NewCakeInput) => {
-    const price = Number(newCakeData.price);
-
-    if (!newCakeData.name.trim() || !Number.isFinite(price) || price < 0) {
-      showToast("❌ Enter a valid product name and price.");
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from("products").insert({
-        name: newCakeData.name.trim(),
-        price,
-        description: newCakeData.category.trim() || null,
-        image_url: newCakeData.image.trim() || null,
-      });
-
-      if (error) {
-        console.error("Error adding product:", error.message);
-        showToast("❌ Failed to save product.");
-        return;
-      }
-
-      setShowAddModal(false);
-      showToast("✨ Product saved successfully!");
-
-      await fetchProducts();
-    } catch (error) {
-      console.error("Unexpected error adding product:", error);
-      showToast("❌ An unexpected error occurred.");
-    }
+  // When a user clicks a cake card on the menu
+  const handleProductClick = (product: Product) => {
+    setSelectedProduct(product);
+    setIsDetailOpen(true);
   };
 
-  const handleSaveEdit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!editingCake) return;
-
-    const price = Number(editingCake.price);
-
-    if (!editingCake.name.trim() || !Number.isFinite(price) || price < 0) {
-      showToast("❌ Enter a valid product name and price.");
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("products")
-        .update({
-          name: editingCake.name.trim(),
-          price,
-          description: editingCake.category.trim() || null,
-          image_url: editingCake.image.trim() || null,
-        })
-        .eq("id", editingCake.id);
-
-      if (error) {
-        console.error("Error updating product:", error.message);
-        showToast("❌ Failed to update product.");
-        return;
-      }
-
-      setEditingCake(null);
-      showToast("✏️ Product updated successfully!");
-
-      await fetchProducts();
-    } catch (error) {
-      console.error("Unexpected error updating product:", error);
-      showToast("❌ An unexpected error occurred.");
-    }
+  // When user clicks "Commission This Masterpiece" from detail view
+  const handleOpenOrder = (product: Product) => {
+    setSelectedProduct(product);
+    setIsOrderOpen(true);
   };
-
-  const confirmDeleteCake = async () => {
-    if (!deletingCake) return;
-
-    try {
-      const { error } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", deletingCake.id);
-      console.log(
-        "Attempting to delete/update ID:",
-        deletingCake.id,
-        typeof deletingCake.id,
-      );
-
-      if (error) {
-        console.error("Error deleting product:", error.message);
-        showToast("❌ Failed to delete product.");
-        return;
-      }
-
-      setDeletingCake(null);
-      showToast("🗑️ Product deleted successfully!");
-
-      await fetchProducts();
-    } catch (error) {
-      console.error("Unexpected error deleting product:", error);
-      showToast("❌ An unexpected error occurred.");
-    }
-  };
-
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-
-  const filteredCakes = products.filter(
-    (product) =>
-      product.name.toLowerCase().includes(normalizedQuery) ||
-      product.category.toLowerCase().includes(normalizedQuery),
-  );
 
   return (
-    <div className="relative flex h-screen w-screen overflow-hidden bg-[#FDF0F3] font-sans text-gray-800">
-      <ToastNotification message={toastMessage} />
-
-      <Sidebar />
-
-      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto p-8">
-        <div className="mx-auto w-full max-w-7xl">
-          <ProductHeader
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onOpenAddModal={() => setShowAddModal(true)}
-          />
-
-          {loading ? (
-            <div
-              className="flex items-center justify-center py-20 font-semibold text-pink-600"
-              role="status"
-              aria-live="polite"
-            >
-              Loading products from database...
-            </div>
-          ) : (
-            <CakeGrid
-              products={filteredCakes}
-              onEdit={setEditingCake}
-              onDelete={setDeletingCake}
-            />
-          )}
+    <div className="min-h-screen bg-[#110806] text-[#F3E8DF] font-sans selection:bg-[#D4A359] selection:text-[#110806]">
+      {/* Hero Section */}
+      <header className="relative py-20 px-6 text-center border-b border-[#E5C396]/20 bg-gradient-to-b from-[#1C0D0A] to-[#110806]">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <span className="text-xs uppercase tracking-[0.3em] text-[#FFE3AC] font-bold">
+            Dark Chocolate & Champagne Gold
+          </span>
+          <h1 className="text-4xl sm:text-6xl font-serif font-bold text-[#FFF5EA] tracking-wide">
+            Talipu Bakery
+          </h1>
+          <p className="text-sm sm:text-base text-[#E5C396]/80 max-w-xl mx-auto font-light">
+            Bespoke artisanal confections crafted for moments of pure
+            indulgence.
+          </p>
         </div>
+      </header>
+
+      {/* Menu Grid Section */}
+      <main className="max-w-7xl mx-auto px-6 py-16">
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="text-2xl font-serif text-[#FFF5EA] font-semibold">
+            The Signature Collection
+          </h2>
+          <span className="text-xs text-[#E5C396] tracking-widest uppercase">
+            Click any piece to view details
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-20 text-[#E5C396]/60 text-sm">
+            Curating collection...
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-20 text-[#E5C396]/60 text-sm">
+            No signature items available at the moment. Check back soon.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.map((product) => (
+              <div
+                key={product.id}
+                onClick={() => handleProductClick(product)}
+                className="group bg-[#1C0D0A] border border-[#E5C396]/30 rounded-3xl overflow-hidden shadow-xl hover:border-[#FFE3AC] transition duration-300 cursor-pointer flex flex-col"
+              >
+                {/* Product Image Frame */}
+                <div className="relative h-64 overflow-hidden bg-[#110806]">
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[#E5C396]/30 font-serif">
+                      Talipu Bakery
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1C0D0A] via-transparent to-transparent opacity-80"></div>
+                </div>
+
+                {/* Card Info */}
+                <div className="p-6 flex flex-col flex-grow justify-between space-y-4">
+                  <div>
+                    <h3 className="text-lg font-serif font-bold text-[#FFF5EA] group-hover:text-[#FFE3AC] transition">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-[#E5C396] mt-1 font-semibold">
+                      MK {product.price?.toLocaleString()}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleProductClick(product);
+                    }}
+                    className="w-full bg-[#2A1612] border border-[#E5C396]/30 text-[#FFE3AC] font-bold text-xs py-2.5 rounded-xl group-hover:bg-[#FFE3AC] group-hover:text-[#110806] transition uppercase tracking-wider cursor-pointer"
+                  >
+                    View Details & Commission
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
-      {showAddModal && (
-        <AddCakeModal
-          onClose={() => setShowAddModal(false)}
-          onAddCake={handleAddCake}
-          showToast={showToast}
-        />
-      )}
+      {/* Footer */}
+      <footer className="border-t border-[#E5C396]/20 py-8 text-center text-xs text-[#E5C396]/60">
+        &copy; 2026 Talipu Bakery. All Rights Reserved.
+      </footer>
 
-      {editingCake && (
-        <EditCakeModal
-          editingCake={editingCake}
-          setEditingCake={setEditingCake}
-          onSave={handleSaveEdit}
-        />
-      )}
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        product={selectedProduct}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        onOpenOrder={handleOpenOrder}
+      />
 
-      {deletingCake && (
-        <DeleteCakeModal
-          deletingCake={deletingCake}
-          onCancel={() => setDeletingCake(null)}
-          onConfirm={confirmDeleteCake}
+      {/* 2-Step Order Modal */}
+      {selectedProduct && (
+        <OrderModal
+          product={selectedProduct}
+          isOpen={isOrderOpen}
+          onClose={() => setIsOrderOpen(false)}
         />
       )}
     </div>
