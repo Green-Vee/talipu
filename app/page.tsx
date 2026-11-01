@@ -10,6 +10,8 @@ import ProductDetailModal from "@/components/storefront/ProductDetailModal";
 import OrderModal from "@/components/storefront/OrderModal";
 import { Suspense } from "react";
 
+export const dynamic = 'force-dynamic';
+
 interface Product {
   id: string;
   name: string;
