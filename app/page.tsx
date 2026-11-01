@@ -10,8 +10,6 @@ import ProductDetailModal from "@/components/storefront/ProductDetailModal";
 import OrderModal from "@/components/storefront/OrderModal";
 import { Suspense } from "react";
 
-export const dynamic = 'force-dynamic';
-
 interface Product {
   id: string;
   name: string;
@@ -34,7 +32,6 @@ export default function Home() {
     setSelectedProduct(product);
     setIsOrderOpen(true);
   };
-
 
   return (
     <div className="min-h-screen bg-[#110806] text-[#F3E8DF] font-sans selection:bg-[#D4A359] selection:text-[#110806]">
