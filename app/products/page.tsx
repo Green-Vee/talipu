@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import { NotificationItem } from "@/components/types";
@@ -30,7 +30,7 @@ interface Product {
   created_at?: string;
 }
 
-export default function AdminProductsPage() {
+function AdminProducts() {
   // Inside AdminProductsPage component:
   const searchParams = useSearchParams();
 
@@ -584,5 +584,13 @@ export default function AdminProductsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminProductsPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-20">Loading...</div>}>
+      <AdminProducts />
+    </Suspense>
   );
 }

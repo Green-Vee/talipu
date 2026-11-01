@@ -273,7 +273,7 @@ export default function AdminDashboardPage() {
                   recentOrders.map((order) => (
                     <div
                       key={order.id}
-                      onClick={() => router.push(`/admin/orders`)}
+                      onClick={() => router.push(`/orders`)}
                       className="flex items-center justify-between bg-pink-50/40 p-3 rounded-xl border border-pink-50 text-xs hover:border-pink-200 transition cursor-pointer"
                     >
                       <div className="space-y-0.5 min-w-0 pr-2">
