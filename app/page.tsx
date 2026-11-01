@@ -33,14 +33,6 @@ export default function Home() {
     setIsOrderOpen(true);
   };
 
-  const handleStartNewOrderFromBanner = () => {
-    const menuSection = document.getElementById("menu-collection");
-    if (menuSection) {
-      menuSection.scrollIntoView({ behavior: "smooth" });
-    } else {
-      window.scrollTo({ top: 600, behavior: "smooth" });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#110806] text-[#F3E8DF] font-sans selection:bg-[#D4A359] selection:text-[#110806]">

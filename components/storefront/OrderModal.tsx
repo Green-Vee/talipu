@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 interface Product {
@@ -22,12 +23,14 @@ export default function OrderModal({
   isOpen,
   onClose,
 }: OrderModalProps) {
+  const router = useRouter();
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [size, setSize] = useState("Standard (8 inch)");
   const [customMessage, setCustomMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -37,41 +40,53 @@ export default function OrderModal({
     setDeliveryDate("");
     setSize("Standard (8 inch)");
     setCustomMessage("");
+    setErrorMessage(null);
     onClose();
   };
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setErrorMessage(null);
 
     try {
+      // 1. Generate unique tracking code
       const randomCode = Math.floor(1000 + Math.random() * 9000);
       const trackingCode = `BAKE-${randomCode}`;
 
-      const { error } = await supabase.from("orders").insert([
-        {
-          tracking_code: trackingCode,
-          customer_name: customerName,
-          phone: phone,
-          delivery_date: deliveryDate,
-          product_name: product.name,
-          product_id: product.id,
-          size: size,
-          custom_message: customMessage,
-          price: product.price,
-          status: "Pending",
-        },
-      ]);
+      // 2. Insert into Supabase and request returned record
+      const { data, error } = await supabase
+        .from("orders")
+        .insert([
+          {
+            tracking_code: trackingCode,
+            customer_name: customerName,
+            phone: phone,
+            delivery_date: deliveryDate,
+            product_name: product.name,
+            product_id: product.id,
+            size: size,
+            custom_message: customMessage,
+            price: product.price,
+            status: "Pending",
+          },
+        ])
+        .select(); // Request returned row to verify insertion
 
       if (error) {
-        console.error("Error inserting order into Supabase:", error);
+        console.error("Supabase Insert Error:", error);
+        setErrorMessage(`Database Error: ${error.message}`);
+        setSubmitting(false);
+        return; // STOP execution so we don't open WhatsApp if DB save failed
       }
 
+      // 3. Save to localStorage for instant lookup on /track
       localStorage.setItem("talipu_tracking_code", trackingCode);
       localStorage.setItem("talipu_customer_name", customerName);
 
+      // 4. Format WhatsApp Message
       const whatsappText = encodeURIComponent(
-        `Hello Talipu Bakery! 🎂\n\n` +
+        `Hello Talipu Bakery! My Name is ${customerName} 🎂\n\n` +
           `I would like to place an order:\n` +
           `*Order Code:* ${trackingCode}\n` +
           `*Cake:* ${product.name}\n` +
@@ -84,10 +99,16 @@ export default function OrderModal({
           `\nPlease confirm my order status!`,
       );
 
-      window.open(`https://wa.me/?text=${whatsappText}`, "_blank");
+      // 5. Open WhatsApp & reset
+      // 4. Reset form state & close modal
+      window.open(`https://wa.me/265888216159?text=${whatsappText}`, "_blank");
       handleCloseAndReset();
-    } catch (err) {
-      console.error("Order submission failed:", err);
+
+      // 5. Instantly redirect customer to tracking page
+      router.push("/track");
+    } catch (err: unknown) {
+      console.error("Unexpected submission error:", err);
+      setErrorMessage("Something went wrong. Please check your connection.");
     } finally {
       setSubmitting(false);
     }
@@ -114,6 +135,13 @@ export default function OrderModal({
             MK {product.price?.toLocaleString()}
           </p>
         </div>
+
+        {/* Display database error message on screen if insert fails */}
+        {errorMessage && (
+          <div className="p-3 bg-red-950/80 border border-red-500/50 rounded-xl text-red-200 text-xs font-mono">
+            {errorMessage}
+          </div>
+        )}
 
         <form onSubmit={handleOrderSubmit} className="space-y-4 text-xs">
           <div>
@@ -196,10 +224,10 @@ export default function OrderModal({
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-gradient-to-r from-[#FFE3AC] via-[#D4A359] to-[#996A22] text-[#110806] font-bold text-xs py-3.5 rounded-xl shadow-[0_0_20px_rgba(212,163,89,0.4)] hover:brightness-110 transition uppercase tracking-wider cursor-pointer"
+            className="w-full bg-gradient-to-r from-[#FFE3AC] via-[#D4A359] to-[#996A22] text-[#110806] font-bold text-xs py-3.5 rounded-xl shadow-[0_0_20px_rgba(212,163,89,0.4)] hover:brightness-110 transition uppercase tracking-wider cursor-pointer disabled:opacity-50"
           >
             {submitting
-              ? "Processing Order..."
+              ? "Saving Order to Database..."
               : "💬 Send Order to WhatsApp & Track"}
           </button>
         </form>
