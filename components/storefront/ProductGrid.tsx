@@ -91,7 +91,7 @@ export default function ProductGrid({ onSelectProduct }: ProductGridProps) {
               }}
               className="w-full bg-[#2A1612] border border-[#E5C396]/30 text-[#FFE3AC] font-bold text-xs py-2.5 rounded-xl group-hover:bg-[#FFE3AC] group-hover:text-[#110806] transition uppercase tracking-wider cursor-pointer"
             >
-              View Details & Commission
+              View Details
             </button>
           </div>
         </div>

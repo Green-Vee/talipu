@@ -93,7 +93,7 @@ export default function ProductDetailModal({
                 }}
                 className="w-full bg-gradient-to-r from-[#FFE3AC] via-[#D4A359] to-[#996A22] text-[#110806] font-bold text-xs py-3.5 rounded-xl shadow-[0_0_25px_rgba(212,163,89,0.4)] hover:brightness-110 transition uppercase tracking-wider cursor-pointer"
               >
-                Commission This Masterpiece →
+                Order Now →
               </button>
             </div>
           </div>
